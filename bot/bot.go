@@ -19,6 +19,7 @@ func Start(conf *Config) error {
 
 	client := client.New(tgHost, conf.TgBotToken)
 	db, err := NewDB(conf.DBPath)
+	defer db.Close()
 	if err != nil {
 		log.Fatalf("Can't create db. Bot is stoped - err: %s", err.Error())
 	}
