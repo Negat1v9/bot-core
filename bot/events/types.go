@@ -1,14 +1,16 @@
 package events
 
+import "context"
+
 type Type int
 
 type Fetcher interface {
-	Fetch(limit int) ([]Event, error)
+	Fetch(ctx context.Context, limit int) ([]Event, error)
 }
 
 // inteface for give event to hadler
 type Handler interface {
-	Direct(e Event) error
+	Direct(ctx context.Context, e Event) error
 }
 
 const (

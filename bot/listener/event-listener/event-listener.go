@@ -1,6 +1,7 @@
 package evlisten
 
 import (
+	"context"
 	"log"
 	"time"
 
@@ -23,9 +24,9 @@ func New(fetcher events.Fetcher, handler events.Handler, limit int) *Receiver {
 }
 
 // Start Bot.
-func (e *Receiver) Start() error {
+func (e *Receiver) StartPooling() error {
 	for {
-		evn, err := e.fetcher.Fetch(e.limit)
+		evn, err := e.fetcher.Fetch(context.TODO(), e.limit)
 		if err != nil {
 			log.Printf("[Err]: receiver: %s", err.Error())
 			continue
@@ -47,7 +48,7 @@ func (e *Receiver) handleEvent(events []events.Event) error {
 	start := time.Time{}
 	for _, event := range events {
 		start = time.Now()
-		if err := e.handler.Direct(event); err != nil {
+		if err := e.handler.Direct(context.TODO(), event); err != nil {
 			log.Printf("can't handle request: %s", err.Error())
 			continue
 		}

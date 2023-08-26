@@ -1,22 +1,26 @@
 package telegram
 
 import (
+	"context"
 	"errors"
 
 	"github.com/Negat1v9/bot-core/bot/client"
 	"github.com/Negat1v9/bot-core/bot/events"
+	"github.com/Negat1v9/bot-core/storage"
 )
 
+// TODO: Change name on "Bot"?
 type Fetcher struct {
-	client *client.Client
-	// storage
-	offset int
+	client  *client.Client
+	storage storage.Storage
+	offset  int
 }
 
-// Add storage
-func New(tg *client.Client) *Fetcher {
+// Add storage.
+func New(tg *client.Client, storage storage.Storage) *Fetcher {
 	return &Fetcher{
-		client: tg,
+		client:  tg,
+		storage: storage,
 	}
 }
 
@@ -25,15 +29,15 @@ var (
 	ErrUnknownMetaType  = errors.New("unknown type of metadata")
 )
 
-// Meta for telegram
+// Meta for telegram.
 type Meta struct {
 	UserName string
 	ChatID   int
 }
 
 // fetcher for updates from server and convert updates in event type.
-func (f *Fetcher) Fetch(limit int) ([]events.Event, error) {
-	updates, err := f.client.Update(f.offset, limit)
+func (f *Fetcher) Fetch(ctx context.Context, limit int) ([]events.Event, error) {
+	updates, err := f.client.Update(ctx, f.offset, limit)
 	if err != nil {
 		return nil, err
 	}
@@ -49,22 +53,22 @@ func (f *Fetcher) Fetch(limit int) ([]events.Event, error) {
 	return events, nil
 }
 
-func (f *Fetcher) Direct(event events.Event) error {
+func (f *Fetcher) Direct(ctx context.Context, event events.Event) error {
 	switch event.Type {
 	case events.TypeMessage:
-		return f.messageEvent(event)
+		return f.messageEvent(ctx, event)
 	default:
 		return ErrUnknownEventType
 	}
 
 }
 
-func (f *Fetcher) messageEvent(event events.Event) error {
+func (f *Fetcher) messageEvent(ctx context.Context, event events.Event) error {
 	meta, err := meta(event)
 	if err != nil {
 		return err
 	}
-	if err := f.cmd(event.Text, meta.UserName, meta.ChatID); err != nil {
+	if err := f.cmd(ctx, event.Text, meta.UserName, meta.ChatID); err != nil {
 		return err
 	}
 	return nil
@@ -84,7 +88,7 @@ func event(upd client.Updates) events.Event {
 
 	res := events.Event{
 		Type: updType,
-		Text: fethMessage(upd),
+		Text: fetchMessage(upd),
 	}
 	if updType == events.TypeMessage {
 		res.Meta = Meta{
@@ -105,7 +109,7 @@ func fetchType(upd client.Updates) events.Type {
 }
 
 // Catch text of message from update
-func fethMessage(upd client.Updates) string {
+func fetchMessage(upd client.Updates) string {
 	if upd.Message == nil {
 		return ""
 	}
